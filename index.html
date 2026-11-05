@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍎 Salva los Alimentos</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    overflow:hidden;
+    background:linear-gradient(to bottom,#87CEEB,#dff6ff);
+}
+
+#game{
+    width:100vw;
+    height:100vh;
+    position:relative;
+}
+
+h1{
+    text-align:center;
+    margin-top:10px;
+    color:#2c3e50;
+}
+
+#score,#lives,#time{
+    position:absolute;
+    left:20px;
+    font-size:22px;
+    font-weight:bold;
+}
+
+#score{top:20px;}
+#lives{top:55px;}
+#time{top:90px;}
+
+#basket{
+    position:absolute;
+    bottom:20px;
+    font-size:70px;
+    user-select:none;
+}
+
+.food{
+    position:absolute;
+    font-size:50px;
+}
+
+.bad{
+    position:absolute;
+    font-size:50px;
+}
+
+#startScreen,
+#endScreen{
+    position:absolute;
+    inset:0;
+    background:white;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:10;
+}
+
+#endScreen{
+    display:none;
+}
+
+button{
+    padding:12px 24px;
+    border:none;
+    border-radius:10px;
+    background:#27ae60;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+
+<h1>🍎 Salva los Alimentos</h1>
+
+<div id="score">Puntos: 0</div>
+<div id="lives">Vidas: 3 ❤️</div>
+<div id="time">Tiempo: 60</div>
+
+<div id="basket">🧺</div>
+
+<div id="startScreen">
+    <h2>Evita el desperdicio de alimentos</h2>
+    <br>
+    <button id="playBtn">Jugar</button>
+</div>
+
+<div id="endScreen">
+    <h2>🎮 Fin del juego</h2>
+    <br>
+    <p id="finalScore"></p>
+    <br>
+    <button onclick="location.reload()">
+        Jugar otra vez
+    </button>
+</div>
+
+</div>
+
+<script>
+
+const basket =
+document.getElementById("basket");
+
+const scoreText =
+document.getElementById("score");
+
+const livesText =
+document.getElementById("lives");
+
+const timeText =
+document.getElementById("time");
+
+const foods = [
+    "🍎","🍌","🥕","🍞","🥦","🍓"
+];
+
+const badFoods = [
+    "🗑️","💀"
+];
+
+let score = 0;
+let lives = 3;
+let timeLeft = 60;
+let running = false;
+
+let basketX =
+window.innerWidth / 2;
+
+basket.style.left =
+basketX + "px";
+
+document.addEventListener(
+"mousemove",
+(e)=>{
+
+    basketX = e.clientX - 40;
+
+    basket.style.left =
+    basketX + "px";
+
+});
+
+document
+.getElementById("playBtn")
+.addEventListener("click",startGame);
+
+function startGame(){
+
+    document
+    .getElementById("startScreen")
+    .style.display = "none";
+
+    running = true;
+
+    startTimer();
+
+    spawnFood();
+
+}
+
+function startTimer(){
+
+    const timer =
+    setInterval(()=>{
+
+        if(!running){
+            clearInterval(timer);
+            return;
+        }
+
+        timeLeft--;
+
+        timeText.innerHTML =
+        "Tiempo: " + timeLeft;
+
+        if(timeLeft <= 0){
+
+            clearInterval(timer);
+
+            endGame();
+        }
+
+    },1000);
+}
+
+function spawnFood(){
+
+    if(!running) return;
+
+    createItem();
+
+    setTimeout(
+    spawnFood,
+    1000
+    );
+}
+
+function createItem(){
+
+    const item =
+    document.createElement("div");
+
+    const isBad =
+    Math.random() < 0.25;
+
+    item.className =
+    isBad ? "bad" : "food";
+
+    item.innerHTML =
+    isBad
+    ? badFoods[Math.floor(Math.random()*badFoods.length)]
+    : foods[Math.floor(Math.random()*foods.length)];
+
+    let x =
+    Math.random() *
+    (window.innerWidth - 50);
+
+    let y = -50;
+
+    item.style.left =
+    x + "px";
+
+    document.body.appendChild(item);
+
+    const speed =
+    3 + Math.random()*3;
+
+    const fall =
+    setInterval(()=>{
+
+        if(!running){
+
+            clearInterval(fall);
+
+            return;
+        }
+
+        y += speed;
+
+        item.style.top =
+        y + "px";
+
+        const basketRect =
+        basket.getBoundingClientRect();
+
+        const itemRect =
+        item.getBoundingClientRect();
+
+        if(
+
+        itemRect.bottom >= basketRect.top &&
+        itemRect.left < basketRect.right &&
+        itemRect.right > basketRect.left
+
+        ){
+
+            if(isBad){
+
+                score -= 10;
+
+            }else{
+
+                score += 10;
+            }
+
+            scoreText.innerHTML =
+            "Puntos: " + score;
+
+            item.remove();
+
+            clearInterval(fall);
+        }
+
+        if(y > window.innerHeight){
+
+            if(!isBad){
+
+                lives--;
+
+                livesText.innerHTML =
+                "Vidas: " +
+                lives + " ❤️";
+
+                if(lives <= 0){
+
+                    endGame();
+                }
+            }
+
+            item.remove();
+
+            clearInterval(fall);
+        }
+
+    },20);
+}
+
+function endGame(){
+
+    running = false;
+
+    document
+    .getElementById("finalScore")
+    .innerHTML =
+
+    "Tu puntuación final fue: "
+    + score;
+
+    document
+    .getElementById("endScreen")
+    .style.display =
+    "flex";
+}
+
+</script>
+
+</body>
+</html>
